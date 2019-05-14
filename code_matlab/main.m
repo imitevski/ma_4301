@@ -1,4 +1,4 @@
-% close all
+close all
 clear all
 
 % The solver is executed by running this file
@@ -11,93 +11,174 @@ g = @(x,y) exp((x.^2 + y.^2)/2);
 
 %Set the minimum and maximum values of n for the solution matrix.
 minN = 4;
-maxN = 7;
-stats = zeros(length(minN:maxN),maxN+1,3);
-stats(:,1,:) = repmat((2.^(minN+1:maxN+1)+1)',[1 1 3]);
+maxN = 5;
+nValNum = length(minN:maxN);
+
+stats = zeros(nValNum,maxN,2);
+hVec = 2.^(-(minN+1:maxN+1)+1);
+
+% errCell is for storing the error matrices at specific "frames"
+% (iterations). frameCell is for remembering which "frames" those were.
+
+errCell = cell(nValNum,maxN);
+frameCell = cell(nValNum,maxN);
+
+% exactSolCell stores g (the exact solution) evaluated on each mesh.
+
+exactSolCell = cell(nValNum,1);
 
 basesNum = 2;
 iterVec = [5 50];
-error_1 = zeros(minN:maxN)
 
-% k == 0 if we don't want to use the mex file, k == 1 if we do.
-for k = 0:0
-    
-    for i = minN:maxN
+for i = minN:maxN
 
-        i
+    i
 
-        n = 2^(i+1) + 1;
-        h = 1/(n-1);
-        xa = 0; xb = 1; ya = 0; yb = 1; tol = h^2/10;
-        [X,Y] = meshgrid(xa:h:xb,ya:h:yb);
+    n = 2^(i+1) + 1;
+    h = 1/(n-1);
+    xa = 0; xb = 1; ya = 0; yb = 1; tol = h^2/10;
+    [X,Y] = meshgrid(xa:h:xb,ya:h:yb);
 
-        if basesNum == 1
+    if basesNum == 1
 
-            F = f1(X,Y);
+        F = f1(X,Y);
 
-        else
+    else
 
-            F1 = f1(X,Y);
-            F2 = f2(X,Y);
+        F1 = f1(X,Y);
+        F2 = f2(X,Y);
 
-            F = min(F1,F2);
-
-        end
-
-        G = g(X,Y);
-
-        A = zeros(n);
-
-        u0 = init(F,g,n,h,X,Y);
-
-        u0(:,1) = g(X(:,1),Y(:,1));
-        u0(:,n) = g(X(:,n),Y(:,n));
-        u0(1,:) = g(X(1,:),Y(1,:));
-        u0(n,:) = g(X(n,:),Y(n,:)); 
-
-    %     %Calculate u_xx*u_yy, and leave only the nonnegative elements.
-    %     u_xy = max(1./h.^2.*(u0(1:end-2,2:end-1)+u0(3:end,2:end-1)-2.*u0(2:end-1,2:end-1)),0)...
-    %        .*max(1./h.^2.*(u0(2:end-1,1:end-2)+u0(2:end-1,3:end)-2.*u0(2:end-1,2:end-1)),0);
-    %    
-    %     %Calculate u_vv*u_v(perp)v(perp), and leave only the nonnegative elements.
-    %     u_vv = max(1./(2.*h.^2).*(u0(3:end,1:end-2)+u0(1:end-2,3:end)-2.*u0(2:end-1,2:end-1)),0)...
-    %            .*max(1./(2.*h.^2).*(u0(3:end,3:end)+u0(1:end-2,1:end-2)-2.*u0(2:end-1,2:end-1)),0);
-    %        
-    %     mask = u_xy <= u_vv;
-    %     
-    %     pcolor(mask)
-
-        N = n;
-
-        for j = 1:i
-
-            [u,resMat,error,time,count] = looper2(F,g,n,N,j,2*iterVec,h,u0,xa,xb,ya,yb,tol,k); 
-%             stats(i,j+1,k+1) = count;
-            stats(i,j+1,k+1) = norm(error,inf);
-%             print("The error is ", error)
-            save('stats.mat','stats');
-%         error_1(i) = norm(error,inf)
-        
-        end
+        F = min(F1,F2);
 
     end
+
+    G = g(X,Y);
     
+    exactSolCell{i-minN+1} = G;
+    
+    A = zeros(n);
+
+    u0 = init(F,g,n,h,X,Y);
+
+    u0(:,1) = g(X(:,1),Y(:,1));
+    u0(:,n) = g(X(:,n),Y(:,n));
+    u0(1,:) = g(X(1,:),Y(1,:));
+    u0(n,:) = g(X(n,:),Y(n,:)); 
+
+    N = n;
+
+    for j = 1:i
+
+        % The last argument is 0 because we don't (read: can't) use the mex
+        % file, and that argument is what turns it on or off.
+        
+        [u,resMat,errMat,time,count] = looper2(F,g,n,N,j,2*iterVec,h,u0,xa,xb,ya,yb,tol,0); 
+        stats(i-minN+1,j,1) = norm(errMat(:,:,end),inf);
+        stats(i-minN+1,j,2) = count;
+
+        % Choose up to 4 almost evenly spaced iteration numbers and store them. 
+        
+        errFrames = unique(ceil(linspace(1,count,4)));
+        frameCell{i-minN+1,j} = errFrames;
+        
+        % Store the error matrices at the chosen iterations.
+        
+        errCell{i-minN+1,j} = errMat(:,:,errFrames);
+        
+    end
+
 end
+    
+% Save everything, just for safety.
+
 save('stats.mat','stats');
+save('errCell.mat','errCell');
+save('exactSolCell.mat','exactSolCell');
    
-fig = figure;
-hold on
+%% Error and iteration plots
 
-for i = 1:maxN
+legendStrs = {'One level','Two levels','Three levels','Four levels',...
+    'Five levels','Six levels','Seven levels','Eight levels',...
+    'Nine levels','Ten levels'};
+
+% Error figure
+
+errFig = figure;
+
+plot(hVec,stats(:,1,1))
+
+xlabel('h')
+ylabel('Error')
+
+title('Error vs. h for all depths of recursion')
     
-    semilogy(stats(i:end,1),stats(i:end,i+1))
+axis tight
+set(gca, 'XDir','reverse')
+
+saveas(errFig,'errFig.fig')
+
+% Iteration figure
+
+countFig = figure;
+
+plot(hVec,stats(:,:,2))
+
+legend(legendStrs(1:maxN));
+xlabel('h')
+ylabel('Iterations')
+
+title(sprintf('Number of iterations vs. h for %d depths of recursion',maxN))
+
+axis tight
+set(gca, 'XDir','reverse')
+
+saveas(countFig,'countFig.fig')
+
+%% Error surface plots
+
+errorDir = 'error_surfs';
+mkdir(errorDir)
+
+exactSolDir = 'exact_sol_surfs';
+mkdir(exactSolDir)
+
+for i = 1:nValNum
+    
+    nValDir = sprintf('%s/N_%d',errorDir,1/hVec(i)+1);
+    mkdir(nValDir)
+    
+    for j = 1:maxN
+        
+        if ~isempty(errCell{i,j}) 
+            
+            depthDir = sprintf('%s/depth_%d',nValDir,j);
+            mkdir(depthDir)
+
+            subplotNum = size(errCell{i,j},3);
+            err = errCell{i,j};
+            
+            for k = 1:subplotNum
+
+                fig1 = figure;
+                
+                surf(abs(err(:,:,k)),'linestyle','none')
+                title(sprintf('h = %f, depth = %d levels, iteration = %d',...
+                    hVec(i),j,frameCell{i,j}(k)))
+                zlim([0 norm(err(:),inf)])
+                
+                saveas(fig1,sprintf('%s/count_%d.fig',depthDir,frameCell{i,j}(k)))
+                
+            end
+            
+        end
+    
+    end
+    
+    fig2 = figure;
+    surf(exactSolCell{i},'linestyle','none')
+    
+    title(sprintf('Exact solution evaluated for h = %f',hVec(i)))
+    
+    saveas(fig2,sprintf('%s/N_%d.fig',exactSolDir,1/hVec(i)+1))
     
 end
-
-legend('One level','Two levels','Three levels','Four levels',...
-    'Five levels','Six levels','Seven levels','Eight levels');
-xlabel('N')
-ylabel('log(Time)')
-title('Time performance vs. N for eight depths of recursion')
-    
-saveas(fig,'time_stats.jpg')
