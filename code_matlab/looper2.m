@@ -1,4 +1,4 @@
-function [u,resMat,errMat,time,count] = looper2(F,g,n,N,levels,iterVec,h,u0,xa,xb,ya,yb,tol,mex)
+function [u,resRec,errMat,time,count] = looper2(F,g,n,N,levels,iterVec,h,u0,xa,xb,ya,yb,tol,mex)
 
 %LOOPER2 is used to put stopping critera on the FAS_V2 iterations
 
@@ -18,8 +18,10 @@ while res > tol
         
     if count == 1
         errMat = err;
+        resRec = resMat;
     else
         errMat = cat(3,errMat,err);
+        resRec = cat(3,resRec,resMat);
     end
     
 end

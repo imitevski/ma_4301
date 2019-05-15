@@ -11,17 +11,18 @@ g = @(x,y) exp((x.^2 + y.^2)/2);
 
 %Set the minimum and maximum values of n for the solution matrix.
 minN = 4;
-maxN = 7;
+maxN = 5;
 nValNum = length(minN:maxN);
 
 stats = zeros(nValNum,maxN,2);
-% hVec = 2.^(-(minN+1:maxN+1)+1);
+nVec = 2.^(minN+1:maxN+1)+1;
 hVec = 2.^(-(minN+1:maxN+1));
 
 % errCell is for storing the error matrices at specific "frames"
 % (iterations). frameCell is for remembering which "frames" those were.
 
 errCell = cell(nValNum,maxN);
+resCell = cell(nValNum,maxN);
 frameCell = cell(nValNum,maxN);
 
 % exactSolCell stores g (the exact solution) evaluated on each mesh.
@@ -71,7 +72,8 @@ for i = minN:maxN
         
         % Store the error matrices at the chosen iterations.
         errCell{i-minN+1,j} = errMat(:,:,errFrames);
-        
+        resCell{i-minN+1,j} = resMat(:,:,errFrames);
+
     end
 
 end
@@ -113,36 +115,57 @@ saveas(countFig,'countFig.fig')
 
 errorDir = 'error_surfs';
 mkdir(errorDir);
+resDir = 'res_surfs';
+mkdir(resDir);
 exactSolDir = 'exact_sol_surfs';
 mkdir(exactSolDir);
 
 for i = 1:nValNum
     
-    nValDir = sprintf('%s/N_%d',errorDir,1/hVec(i)+1);
-    mkdir(nValDir)
-   
+    nValDir1 = sprintf('%s/N_%d',errorDir,1/hVec(i)+1);
+    mkdir(nValDir1)
+    
+    nValDir2 = sprintf('%s/N_%d',resDir,1/hVec(i)+1);
+    mkdir(nValDir2)
+
     for j = 1:maxN
         if ~isempty(errCell{i,j}) 
-            depthDir = sprintf('%s/depth_%d',nValDir,j);
-            mkdir(depthDir)
+            depthDir1 = sprintf('%s/depth_%d',nValDir1,j);
+            mkdir(depthDir1)
+
+            depthDir2 = sprintf('%s/depth_%d',nValDir2,j);
+            mkdir(depthDir2)
+
             subplotNum = size(errCell{i,j},3);
             err = errCell{i,j};
+            res = resCell{i,j};
             
             for k = 1:subplotNum
+
                 fig1 = figure;
-                surf(abs(err(:,:,k)),'linestyle','none');
+                surf(linspace(0,1,nVec(i)),linspace(0,1,nVec(i)),abs(err(:,:,k)),...
+                    'linestyle','none');
                 title(sprintf('h = %f, depth = %d levels, iteration = %d',...
                     hVec(i),j,frameCell{i,j}(k)));
-                zlim([0 norm(err(:),inf)]);
-                saveas(fig1,sprintf('%s/count_%d.fig',depthDir,frameCell{i,j}(k)));
+%                 zlim([0 norm(err(:),inf)]);
+                saveas(fig1,sprintf('%s/count_%d.fig',depthDir1,frameCell{i,j}(k)));
+
+                fig2 = figure;
+                surf(linspace(0,1,nVec(i)),linspace(0,1,nVec(i)),res(:,:,k),...
+                    'linestyle','none');
+                title(sprintf('h = %f, depth = %d levels, iteration = %d',...
+                    hVec(i),j,frameCell{i,j}(k)));
+%                 zlim([0 norm(res(:),inf)]);
+                saveas(fig2,sprintf('%s/count_%d.fig',depthDir2,frameCell{i,j}(k))); 
+
             end
         end
     end
     
-    fig2 = figure;
+    fig = figure;
     surf(exactSolCell{i},'linestyle','none');
     title(sprintf('Exact solution evaluated for h = %f',hVec(i)));
-    saveas(fig2,sprintf('%s/N_%d.fig',exactSolDir,1/hVec(i)+1));
+    saveas(fig,sprintf('%s/N_%d.fig',exactSolDir,1/hVec(i)+1));
 end
 
 %% Error Surface Plots 
@@ -155,10 +178,10 @@ surf(linspace(0,1,65),linspace(0,1,65),err(:,:,1));
 title('error evaluated at N=65, depth_2, count 1')
 saveas(fig1,sprintf('error_65_d2_c1.fig'))
 
-fig2 = figure;
+fig = figure;
 surf(linspace(0,1,65),linspace(0,1,65),err(:,:,2));
 title('error evaluated at N=65, depth_2, count 2')
-saveas(fig2,sprintf('error_65_d2_c2.fig'))
+saveas(fig,sprintf('error_65_d2_c2.fig'))
 
 fig3 = figure;
 surf(linspace(0,1,65),linspace(0,1,65),err(:,:,3));
