@@ -12,7 +12,7 @@ res = 1;
 while res > tol
     
     count = count + 1;
-    
+   
     [u,resMat,err] = FAS_V2(F,g,n,N,levels,iterVec,h,u,xa,xb,ya,yb,count,mex);
     res = norm(resMat(:),inf);
         
@@ -25,6 +25,5 @@ while res > tol
 end
 
 time = toc;
-
 
 end
