@@ -8,7 +8,7 @@ The Monge-Ampere (MA) equation is a fully nonlinear degenerate elliptic partial 
 * `code_matlab`: Folder contains the MATLAB version of the code used. Code is run from `main.m`.
 * `figures`: Figures used in the report
 * `ma_solver.ipynb`: Jupyter Notebook containing the Python version of the code which at this moment has bugs and it will be completed in future
-* `report.pdf`: Report submitted for the class for which this project was mentioned 
+* `report.pdf`: Report submitted for the class for which this project was used 
 
 ## Acknowledgements:
 The MATLAB code was initially developed by: [Matthew Illingworth](https://github.com/octoract), Ivan Mitevski, and David Yousuf during EXTREEMS-QED project in 2017 at New Jersey Institute of Technology and the same was adopted for this work. Abstract submitted to [JMM 2018, San Diego, CA](http://jointmathematicsmeetings.org/meetings/national/jmm2018/2197_program_ss83.html) can be found [here](http://jointmathematicsmeetings.org/amsmtgs/2197_abstracts/1135-65-1870.pdf).
